@@ -18,6 +18,7 @@
     /unping <@user|id>     — убрать пинг
     /dump                  — прислать полный дамп таблицы сейчас
     /test                  — тестовое сообщение
+    /github                — ссылка на исходный код
     /stop                  — убрать чат из слушателей
 """
 from __future__ import annotations
@@ -122,6 +123,8 @@ class CommandHandler:
             return self.cmd_list(chat_id)
         if cmd == "/dump":
             return self.cmd_dump(chat_id)
+        if cmd == "/github":
+            return self.cmd_github(chat_id)
         if cmd == "/test":
             return self.reply(chat_id, "✅ <b>F5 Господина</b> на связи. Команды: /help")
         if cmd == "/stop":
@@ -157,8 +160,14 @@ class CommandHandler:
             "/status — статус поллинга\n"
             "/dump — прислать полный дамп таблицы сейчас\n"
             "/test — проверка связи\n"
+            "/github — исходный код бота\n"
             "/stop — убрать этот чат из слушателей\n\n"
             "Изменения подписок применяются на лету.")
+
+    def cmd_github(self, chat_id):
+        self.reply(chat_id,
+            "🐙 Исходный код F5 Господина:\n"
+            "https://github.com/Gribbirg/normocontrol-polling")
 
     def cmd_status(self, chat_id):
         cfg = load_config()
