@@ -12,6 +12,7 @@
     /help                  — справка
     /status                — статус поллинга
     /list                  — подписка этого чата + краткий список всех
+    /stats                 — сводка по отслеживаемому (антиплагиат/норм/допуск/прим)
     /watch <код|ФИО>       — добавить цель слежения (группу или студента)
     /unwatch <код|ФИО>     — убрать цель
     /ping <@user|id>       — добавить пинг
@@ -27,6 +28,7 @@ import re
 
 from config import load_config_raw, load_config, load_state, save_config_raw
 from report import esc, now_stamp, XLSX_MIME
+from stats import build_stats
 from telegram import Telegram
 from xlsx import fetch_xlsx
 
@@ -121,6 +123,8 @@ class CommandHandler:
             return self.cmd_status(chat_id)
         if cmd == "/list":
             return self.cmd_list(chat_id)
+        if cmd == "/stats":
+            return self.cmd_stats(chat_id)
         if cmd == "/dump":
             return self.cmd_dump(chat_id)
         if cmd == "/github":
@@ -157,6 +161,7 @@ class CommandHandler:
             "/ping <code>@user</code> или <code>id</code> — пинговать при изменениях\n"
             "/unping <code>...</code> — убрать пинг\n"
             "/list — что отслеживается в этом чате\n"
+            "/stats — сводка: антиплагиат, нормоконтроль, допуск, примечания\n"
             "/status — статус поллинга\n"
             "/dump — прислать полный дамп таблицы сейчас\n"
             "/test — проверка связи\n"
@@ -199,6 +204,19 @@ class CommandHandler:
                 tgt = ', '.join(s.get('groups', []) + s.get('students', [])) or '—'
                 lines.append(f"• {esc(s.get('name', '?'))} → {esc(tgt)} (chat {esc(str(s.get('chat_id')))})")
         self.reply(chat_id, "\n".join(lines))
+
+    def cmd_stats(self, chat_id):
+        raw = load_config_raw()
+        sub = _find_sub(raw.get("subscriptions", []), chat_id)
+        if not sub:
+            return self.reply(chat_id,
+                "В этом чате нет подписки. Добавь цель: /watch ГРУППА-01-23")
+        self.reply(chat_id, "⏳ Считаю статистику…")
+        try:
+            cfg = load_config()
+            self.reply(chat_id, build_stats(cfg, sub))
+        except Exception as e:  # noqa: BLE001
+            self.reply(chat_id, f"⚠️ Не удалось собрать статистику: {esc(str(e))}")
 
     def cmd_dump(self, chat_id):
         try:

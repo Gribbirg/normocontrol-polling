@@ -156,7 +156,7 @@ def _is_header(rowcells: dict) -> bool:
     return a == "№" and b.startswith("ФИО")
 
 
-def _grid_to_snapshot(grid: dict) -> dict:
+def _grid_to_snapshot(grid: dict, max_col: int = MAX_TRACK_COL) -> dict:
     snapshot: dict = {}
     headers: dict[int, str] = {}
     cur_group = ""
@@ -178,7 +178,7 @@ def _grid_to_snapshot(grid: dict) -> dict:
 
         cells: dict[str, dict] = {}
         for idx, (text, fill) in rowcells.items():
-            if idx in SKIP_COLS or idx > MAX_TRACK_COL:
+            if idx in SKIP_COLS or idx > max_col:
                 continue
             clr = color_label(fill)
             if not text and not clr:
@@ -196,9 +196,13 @@ def _grid_to_snapshot(grid: dict) -> dict:
     return snapshot
 
 
-def parse_workbook(raw: bytes, markers: list[str]) -> dict:
+def parse_workbook(raw: bytes, markers: list[str], max_col: int = MAX_TRACK_COL) -> dict:
     """Парсит xlsx и выбирает нужный лист по содержимому (где встречаются
-    коды отслеживаемых групп). Возвращает снапшот с текстом и цветом."""
+    коды отслеживаемых групп). Возвращает снапшот с текстом и цветом.
+
+    max_col ограничивает читаемые колонки. По умолчанию — основная таблица
+    (MAX_TRACK_COL); команда /stats передаёт больший предел, чтобы дочитать
+    блок «Антиплагиат» и правый «Допуск к защите», лежащие вне трекинга."""
     z = zipfile.ZipFile(io.BytesIO(raw))
     shared = _parse_shared_strings(z)
     xf_fill = _parse_fills(z)
@@ -217,4 +221,4 @@ def parse_workbook(raw: bytes, markers: list[str]) -> dict:
         if hits > best_hits:
             best_hits, best_grid = hits, grid
 
-    return _grid_to_snapshot(best_grid or {})
+    return _grid_to_snapshot(best_grid or {}, max_col)
