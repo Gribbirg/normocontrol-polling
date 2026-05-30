@@ -211,7 +211,6 @@ class CommandHandler:
         if not sub:
             return self.reply(chat_id,
                 "В этом чате нет подписки. Добавь цель: /watch ГРУППА-01-23")
-        self.reply(chat_id, "⏳ Считаю статистику…")
         try:
             cfg = load_config()
             self.reply(chat_id, build_stats(cfg, sub))
