@@ -57,7 +57,10 @@ src/
   report.py        build_report() (grouped by student, color+text deltas),
                    render_mention(), send_report() (attaches xlsx dump).
   commands.py      CommandHandler: whitelist check, /start registration,
-                   /watch /unwatch /ping /unping /list /status /dump /stop /help.
+                   /watch /unwatch /ping /unping /list /pwd /stats /status
+                   /dump /test /github /stop /help. /list shows only this chat's
+                   subscription; /pwd prints chat_id (kept out of /list to avoid
+                   leaking other chats' ids).
                    Mutating commands do read-modify-write on config.json.
 config/
   config.example.json   template (committed)
