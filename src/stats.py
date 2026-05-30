@@ -18,15 +18,14 @@ from xlsx import MAX_TRACK_COL, fetch_xlsx, parse_workbook
 STATS_MAX_COL = MAX_TRACK_COL
 
 # (название категории, ключевые слова в заголовке колонки — lowercase, подстрока).
-# Выводятся только реально присутствующие в листе категории (см. _present_cats).
+# Все три категории показываем всегда: пустая колонка = 0% — это тоже сигнал.
 CATEGORIES = [
     ("Антиплагиат", ("антиплагиат",)),
-    ("Нормоконтроль", ("нормоконтроль", "норм.")),
     ("Допуск к защите", ("допуск",)),
     ("Примечания", ("прим",)),
 ]
 # Категории, которые считаем по зелёной заливке (пройдено/не пройдено).
-COLOR_CATS = {"Антиплагиат", "Нормоконтроль", "Допуск к защите"}
+COLOR_CATS = {"Антиплагиат", "Допуск к защите"}
 
 
 def _is_green(c: str) -> bool:
@@ -34,40 +33,28 @@ def _is_green(c: str) -> bool:
 
 
 def _row_cats(cells: dict) -> dict:
-    """Для строки студента: категория -> {value, green, present}."""
+    """Для строки студента: категория -> {value, green}."""
     res: dict[str, dict] = {}
     for name, keywords in CATEGORIES:
         vals: list[str] = []
         green = False
-        present = False
         for label, cell in cells.items():
             ll = label.lower()
             if any(k in ll for k in keywords):
-                present = True
                 v = (cell.get("v") or "").strip()
                 if v:
                     vals.append(v)
                 if _is_green(cell.get("c", "")):
                     green = True
-        res[name] = {"value": vals[0] if vals else "", "green": green, "present": present}
+        res[name] = {"value": vals[0] if vals else "", "green": green}
     return res
 
 
-def _present_cats(rows: list[dict]) -> list[str]:
-    """Категории, для которых в листе реально есть колонка (чтобы не показывать
-    пустые «0/28 (0%)» по отсутствующим столбцам)."""
-    present: list[str] = []
-    for name, _ in CATEGORIES:
-        if any(_row_cats(r["cells"])[name]["present"] for r in rows):
-            present.append(name)
-    return present
-
-
-def _group_lines(members: list[dict], show: list[str]) -> list[str]:
+def _group_lines(members: list[dict]) -> list[str]:
     n = len(members)
     cats = [_row_cats(m["cells"]) for m in members]
     out: list[str] = []
-    for name in show:
+    for name, _ in CATEGORIES:
         if name in COLOR_CATS:
             ok = sum(1 for c in cats if c[name]["green"])
             pct = round(ok * 100 / n) if n else 0
@@ -78,10 +65,10 @@ def _group_lines(members: list[dict], show: list[str]) -> list[str]:
     return out
 
 
-def _student_lines(row: dict, show: list[str]) -> list[str]:
+def _student_lines(row: dict) -> list[str]:
     cats = _row_cats(row["cells"])
     out: list[str] = []
-    for name in show:
+    for name, _ in CATEGORIES:
         c = cats[name]
         if name in COLOR_CATS:
             mark = "🟢" if c["green"] else "⚪️"
@@ -116,14 +103,12 @@ def build_stats(cfg: dict, sub: dict | None) -> str:
         lines.append("\nНечего показывать: добавь цель через /watch.")
         return "\n".join(lines)
 
-    show = _present_cats(rows) or [n for n, _ in CATEGORIES]
-
     for g in groups:
         members = [r for r in rows if r["_group"].strip().lower() == g.lower()]
         lines.append("")
         lines.append(f"🎓 <b>{esc(g)}</b> — {len(members)} студ.")
         if members:
-            lines += _group_lines(members, show)
+            lines += _group_lines(members)
         else:
             lines.append("  нет данных в таблице")
 
@@ -136,6 +121,6 @@ def build_stats(cfg: dict, sub: dict | None) -> str:
         for r in matched:
             lines.append("")
             lines.append(f"👤 <b>{esc(r['_fio'])}</b> ({esc(r['_group'])})")
-            lines += _student_lines(r, show)
+            lines += _student_lines(r)
 
     return "\n".join(lines)
