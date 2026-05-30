@@ -3,6 +3,8 @@
   "poll_interval": 30,
   "listeners": [123456789, -1001234567890],
   "open_registration": false,
+  "max_listeners": 50,
+  "open_access": false,
   "sheet": {
     "id": "YOUR-GOOGLE-SHEET-ID",
     "gid": "0"

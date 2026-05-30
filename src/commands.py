@@ -100,14 +100,20 @@ class CommandHandler:
         arg = parts[1].strip() if len(parts) > 1 else ""
 
         raw = load_config_raw()
-        listening = self.is_listener(raw, chat_id)
+        open_access = raw.get("open_access", False)  # вайтлист не обязателен — отвечаем всем
+        listening = open_access or self.is_listener(raw, chat_id)
 
         # /start — точка входа: регистрирует чат как слушателя
         if cmd == "/start":
             if listening:
                 return self.cmd_help(chat_id)
             if raw.get("open_registration", False):
-                raw.setdefault("listeners", []).append(chat_id)
+                listeners = raw.setdefault("listeners", [])
+                limit = raw.get("max_listeners", 50)
+                if len(listeners) >= limit:
+                    return self.reply(chat_id,
+                        "🚫 Достигнут лимит чатов-слушателей. Регистрация временно закрыта.")
+                listeners.append(chat_id)
                 save_config_raw(raw)
                 self.reply(chat_id, "✅ Чат добавлен в слушатели F5 Господина.")
                 return self.cmd_help(chat_id)
@@ -118,7 +124,7 @@ class CommandHandler:
         if cmd == "/pwd":
             return self.cmd_pwd(chat_id)
 
-        # вне allowlist бот не отвечает (только мне в личке и в Пипании)
+        # вне allowlist бот не отвечает (если open_access=true — listening всегда true)
         if not listening:
             return
 

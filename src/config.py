@@ -33,6 +33,8 @@ def load_config() -> dict:
     cfg.setdefault("subscriptions", [])
     cfg.setdefault("listeners", [])
     cfg.setdefault("open_registration", False)  # строго: вне whitelist игнор даже /start
+    cfg.setdefault("max_listeners", 50)  # потолок авто-регистрации через /start (ручная правка конфига не ограничена)
+    cfg.setdefault("open_access", False)  # true: бот отвечает в любом чате, вайтлист не обязателен
     sheet = cfg.get("sheet") or {}
     if not sheet.get("id") or not sheet.get("gid"):
         sys.exit("В config.sheet нужны поля id и gid.")

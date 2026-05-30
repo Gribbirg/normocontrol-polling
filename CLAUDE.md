@@ -26,10 +26,21 @@ pings), configurable at runtime via bot commands.
   (`src/xlsx.py: MAX_TRACK_COL = 8`).
 - **Ping by `@username`, not by display name.** A `tg://user?id=` text-mention with
   a name does not reliably notify. `render_mention` prioritizes `@username`.
-- **Bot reacts only in whitelisted chats** (`config.listeners`). Chats outside the
-  list are ignored entirely, including `/start`, unless `open_registration: true`.
-  The one exception is `/pwd` (prints chat_id) — it answers anywhere, otherwise
-  you could never learn a new chat's id to add it to the whitelist.
+- **Bot reacts only in whitelisted chats** (`config.listeners`) by default. Chats
+  outside the list are ignored entirely, including `/start`, unless
+  `open_registration: true`. The one exception is `/pwd` (prints chat_id) — it
+  answers anywhere, otherwise you could never learn a new chat's id to add it to
+  the whitelist.
+- **`open_access: true` makes the whitelist non-mandatory** — the bot then answers
+  in ANY chat (the `listening` gate is forced true). Mutating commands stay safe
+  because subscriptions are keyed by `chat_id` (`_find_sub`/`_ensure_sub`), so a
+  chat can only edit its own subscription. Default is `false`; flipping it is a
+  deliberate "open to everyone" choice, NOT a regression.
+- **Auto-registration is capped at `config.max_listeners` (default 50).** Applies
+  ONLY to the `/start` path under `open_registration: true` — protects against a
+  flood of random chats joining via a shared link. Manual edits to `config.json`
+  are NOT limited (an admin adding a chat by hand is deliberate). Moot when
+  `open_access: true` (no registration needed).
 - **Single instance only.** Two processes calling `getUpdates` cause 409 conflicts
   and ~minute-long latency. `run`/`bot` take a `flock` (`config/.f5gospodina.lock`).
 - **No third-party dependencies.** Standard library only (urllib, zipfile,
