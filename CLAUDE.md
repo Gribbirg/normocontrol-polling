@@ -28,6 +28,8 @@ pings), configurable at runtime via bot commands.
   a name does not reliably notify. `render_mention` prioritizes `@username`.
 - **Bot reacts only in whitelisted chats** (`config.listeners`). Chats outside the
   list are ignored entirely, including `/start`, unless `open_registration: true`.
+  The one exception is `/pwd` (prints chat_id) — it answers anywhere, otherwise
+  you could never learn a new chat's id to add it to the whitelist.
 - **Single instance only.** Two processes calling `getUpdates` cause 409 conflicts
   and ~minute-long latency. `run`/`bot` take a `flock` (`config/.f5gospodina.lock`).
 - **No third-party dependencies.** Standard library only (urllib, zipfile,

@@ -12,7 +12,7 @@
     /help                  — справка
     /status                — статус поллинга
     /list                  — подписка этого чата
-    /pwd                   — показать ID этого чата
+    /pwd                   — показать ID этого чата (работает и вне whitelist)
     /stats                 — сводка по отслеживаемому (антиплагиат/норм/допуск/прим)
     /watch <код|ФИО>       — добавить цель слежения (группу или студента)
     /unwatch <код|ФИО>     — убрать цель
@@ -114,6 +114,10 @@ class CommandHandler:
             # регистрация закрыта — молча игнорируем чужой чат
             return
 
+        # /pwd доступна везде: иначе не узнать chat_id, чтобы добавить чат в whitelist
+        if cmd == "/pwd":
+            return self.cmd_pwd(chat_id)
+
         # вне allowlist бот не отвечает (только мне в личке и в Пипании)
         if not listening:
             return
@@ -124,8 +128,6 @@ class CommandHandler:
             return self.cmd_status(chat_id)
         if cmd == "/list":
             return self.cmd_list(chat_id)
-        if cmd == "/pwd":
-            return self.cmd_pwd(chat_id)
         if cmd == "/stats":
             return self.cmd_stats(chat_id)
         if cmd == "/dump":
