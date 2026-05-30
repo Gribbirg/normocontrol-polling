@@ -11,7 +11,8 @@
     /start                 — зарегистрировать чат как слушателя + справка
     /help                  — справка
     /status                — статус поллинга
-    /list                  — подписка этого чата + краткий список всех
+    /list                  — подписка этого чата
+    /pwd                   — показать ID этого чата
     /stats                 — сводка по отслеживаемому (антиплагиат/норм/допуск/прим)
     /watch <код|ФИО>       — добавить цель слежения (группу или студента)
     /unwatch <код|ФИО>     — убрать цель
@@ -123,6 +124,8 @@ class CommandHandler:
             return self.cmd_status(chat_id)
         if cmd == "/list":
             return self.cmd_list(chat_id)
+        if cmd == "/pwd":
+            return self.cmd_pwd(chat_id)
         if cmd == "/stats":
             return self.cmd_stats(chat_id)
         if cmd == "/dump":
@@ -161,6 +164,7 @@ class CommandHandler:
             "/ping <code>@user</code> или <code>id</code> — пинговать при изменениях\n"
             "/unping <code>...</code> — убрать пинг\n"
             "/list — что отслеживается в этом чате\n"
+            "/pwd — показать ID этого чата\n"
             "/stats — сводка: антиплагиат, нормоконтроль, допуск, примечания\n"
             "/status — статус поллинга\n"
             "/dump — прислать полный дамп таблицы сейчас\n"
@@ -187,23 +191,19 @@ class CommandHandler:
 
     def cmd_list(self, chat_id):
         raw = load_config_raw()
-        subs = raw.get("subscriptions", [])
-        sub = _find_sub(subs, chat_id)
-        lines = []
-        if sub:
-            lines.append("📋 <b>Эта подписка</b>")
-            lines.append(f"Группы: {esc(', '.join(sub.get('groups', [])) or '—')}")
-            lines.append(f"Студенты: {esc(', '.join(sub.get('students', [])) or '—')}")
-            pings = [esc(_mention_label(m)) for m in sub.get("mentions", [])]
-            lines.append(f"Пинги: {', '.join(pings) or '—'}")
-        else:
-            lines.append("В этом чате пока нет подписки. Добавь: /watch ГРУППА-01-23")
-        if subs:
-            lines.append("\n<b>Все подписки:</b>")
-            for s in subs:
-                tgt = ', '.join(s.get('groups', []) + s.get('students', [])) or '—'
-                lines.append(f"• {esc(s.get('name', '?'))} → {esc(tgt)} (chat {esc(str(s.get('chat_id')))})")
+        sub = _find_sub(raw.get("subscriptions", []), chat_id)
+        if not sub:
+            return self.reply(chat_id,
+                "В этом чате пока нет подписки. Добавь: /watch ГРУППА-01-23")
+        lines = ["📋 <b>Подписка этого чата</b>"]
+        lines.append(f"Группы: {esc(', '.join(sub.get('groups', [])) or '—')}")
+        lines.append(f"Студенты: {esc(', '.join(sub.get('students', [])) or '—')}")
+        pings = [esc(_mention_label(m)) for m in sub.get("mentions", [])]
+        lines.append(f"Пинги: {', '.join(pings) or '—'}")
         self.reply(chat_id, "\n".join(lines))
+
+    def cmd_pwd(self, chat_id):
+        self.reply(chat_id, f"🆔 ID этого чата: <code>{esc(str(chat_id))}</code>")
 
     def cmd_stats(self, chat_id):
         raw = load_config_raw()
