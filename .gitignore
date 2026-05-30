@@ -1,0 +1,18 @@
+# секреты и рантайм-состояние — не коммитим
+config/config.json
+config/state.json
+config/state.json.tmp
+config/.f5gospodina.lock
+# (на случай переопределения путей или запуска из других мест)
+state.json
+state.json.tmp
+.f5gospodina.lock
+
+__pycache__/
+*.pyc
+
+# IDE / прочий мусор
+.idea/
+*.iml
+.DS_Store
+*.swp

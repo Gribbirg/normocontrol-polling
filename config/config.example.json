@@ -1,0 +1,32 @@
+{
+  "bot_token": "PUT-YOUR-BOT-TOKEN-HERE-or-use-env-TG_BOT_TOKEN",
+  "poll_interval": 30,
+  "listeners": [123456789, -1001234567890],
+  "open_registration": false,
+  "sheet": {
+    "id": "YOUR-GOOGLE-SHEET-ID",
+    "gid": "0"
+  },
+  "subscriptions": [
+    {
+      "name": "ГРУППА-XX -> Целевой чат",
+      "groups": ["ГРУППА-XX"],
+      "students": [],
+      "columns": [],
+      "chat_id": "-1001234567890",
+      "mentions": [
+        { "name": "Имя Фамилия", "username": "@some_username", "id": 123456789 }
+      ],
+      "attach_dump": true
+    },
+    {
+      "name": "Пример: конкретные студенты -> личка, пинг по @username",
+      "groups": [],
+      "students": ["Иванов", "Петров"],
+      "columns": [],
+      "chat_id": "123456789",
+      "mentions": ["@some_username"],
+      "attach_dump": true
+    }
+  ]
+}
