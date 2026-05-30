@@ -1,0 +1,54 @@
+name: Deploy
+
+# Авто-деплой на сервер при каждом пуше в main.
+# Конфиг и состояние НЕ трогаются: config/config.json и config/state.json
+# в .gitignore, поэтому git reset --hard их не затрагивает (прогресс цел).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # ручной запуск из вкладки Actions
+
+# Не даём двум деплоям идти параллельно; новый ждёт завершения текущего.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Настроить SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Деплой и перезапуск
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$USER@$HOST" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/normocontrol-polling
+
+          # Тянем свежий main. reset --hard вместо pull: устойчив к force-push,
+          # без merge-конфликтов. Untracked-файлы (config.json, state.json) не трогает.
+          git fetch --prune origin
+          git reset --hard origin/main
+          echo "Задеплоен коммит: $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
+
+          # Перезапуск сервиса (подхватывает новый код).
+          systemctl restart f5-gospodina
+          sleep 5
+
+          # Проверяем, что поднялся, иначе валим job.
+          if ! systemctl is-active --quiet f5-gospodina; then
+            echo "::error::Сервис не активен после рестарта"
+            journalctl -u f5-gospodina --no-pager -n 30 -o cat
+            exit 1
+          fi
+          echo "Сервис активен: $(systemctl is-active f5-gospodina)"
+          REMOTE
