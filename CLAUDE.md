@@ -63,6 +63,8 @@ config/
   config.example.json   template (committed)
   config.json           real config incl. bot_token (GITIGNORED)
   state.json            table snapshot (GITIGNORED, auto-created)
+.github/workflows/
+  deploy.yml            CI: push to main -> ssh -> git reset --hard -> restart
 ```
 
 ### Data model
@@ -115,6 +117,26 @@ reported as new.
 Реальные значения (bot token, chat/user id, sheet id, имена ответственных)
 держим только в `config/config.json` (gitignored) — в репозитории их нет.
 Шаблон с плейсхолдерами: `config/config.example.json`.
+
+## Deployment & CI
+
+- **Prod runs on a VPS via systemd** (`main.py run`), NOT in a container. Code in
+  `/opt/normocontrol-polling`, cloned from the public HTTPS remote.
+- **Telegram must be reachable from the host.** Yandex Cloud was tried and
+  rejected: `api.telegram.org` is unreachable there (`URLError: [Errno 101]`),
+  though Google Sheets works. Pick a host from which Telegram is reachable.
+- **Auto-deploy: `.github/workflows/deploy.yml`.** Push to `main` → SSH → `git
+  reset --hard origin/main` → `systemctl restart f5-gospodina`. `reset --hard`
+  (not `pull`) is force-push-safe and never touches untracked files.
+- **State/config survive deploys precisely because they are gitignored** —
+  `git reset --hard` leaves `config.json` and `state.json` alone. Never commit
+  them; never have CI overwrite them (subscriptions are edited live via bot
+  commands, so a CI overwrite would clobber them).
+- **Deploy secrets live in GitHub Secrets**, not in the repo: `DEPLOY_HOST`,
+  `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`. The CI SSH key is
+  separate from any personal key so it can be revoked independently.
+- Real host/IP/token/PII are NOT in the repo (it is public) — see "Reference
+  values" above. Operational specifics live in Claude's project memory.
 
 ## Conventions
 

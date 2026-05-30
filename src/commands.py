@@ -209,7 +209,7 @@ class CommandHandler:
             return self.reply(chat_id, f"Уже отслеживается: <code>{esc(arg)}</code>")
         lst.append(arg)
         save_config_raw(raw)
-        kind = "группа" if field == "groups" else "студент"
+        kind = "группой" if field == "groups" else "студентом"
         self.reply(chat_id, f"✅ Слежу за {kind}: <code>{esc(arg)}</code>")
 
     def cmd_unwatch(self, raw, chat_id, arg):

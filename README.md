@@ -103,18 +103,22 @@ python3 main.py bot      # только слушатель команд (без 
 
 ## Деплой
 
-### systemd (Linux)
+> ⚠️ **Telegram должен быть доступен с хоста.** Из некоторых облаков (например
+> Yandex Cloud) `api.telegram.org` нероутится — бот сможет читать таблицу, но не
+> отправлять репорты и не принимать команды. Выбирайте хостинг, откуда Telegram
+> доступен.
+
+### systemd (Linux) — основной способ
 
 ```ini
 # /etc/systemd/system/f5-gospodina.service
 [Unit]
 Description=F5 Gospodina — normocontrol polling
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 WorkingDirectory=/opt/normocontrol-polling
-Environment=TG_BOT_TOKEN=xxxxx
-Environment=STATE_PATH=/var/lib/f5-gospodina/state.json
 ExecStart=/usr/bin/python3 /opt/normocontrol-polling/main.py run
 Restart=always
 RestartSec=10
@@ -123,13 +127,38 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-`Restart=always` + персистентный `STATE_PATH` = после краша поднимется и
-продолжит с того же места.
+`Restart=always` = после краша поднимется и продолжит с того же места
+(`state.json` персистентный). Токен и подписки берутся из `config/config.json`
+(можно переопределить токен через env `TG_BOT_TOKEN`).
 
-### cron (каждую минуту)
+Развёртывание вручную:
+
+```bash
+git clone https://github.com/Gribbirg/normocontrol-polling.git /opt/normocontrol-polling
+# положить config/config.json (с токеном) — он gitignored, в репозитории его нет
+sudo systemctl enable --now f5-gospodina
+journalctl -u f5-gospodina -f   # логи
+```
+
+### Авто-деплой через GitHub Actions
+
+`.github/workflows/deploy.yml`: на каждый push в `main` (и по кнопке в Actions)
+заходит на сервер по SSH, делает `git reset --hard origin/main` и
+`systemctl restart f5-gospodina`.
+
+- **Прогресс не теряется**: `config/config.json` и `config/state.json` в
+  `.gitignore` (untracked), поэтому `git reset --hard` их не трогает — подписки,
+  whitelist и снапшот таблицы остаются как есть.
+- **Секреты доступа** — в GitHub Secrets (Settings → Secrets and variables →
+  Actions): `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (приватный SSH-ключ),
+  `DEPLOY_KNOWN_HOSTS` (host key сервера для строгой проверки).
+- На сервере код лежит в `/opt/normocontrol-polling`, remote — публичный HTTPS
+  (креды для `git fetch` не нужны).
+
+### cron (каждую минуту) — альтернатива без долгого процесса
 
 ```cron
-* * * * * cd /opt/normocontrol-polling && TG_BOT_TOKEN=xxx python3 main.py once >> /var/log/f5.log 2>&1
+* * * * * cd /opt/normocontrol-polling && python3 main.py once >> /var/log/f5.log 2>&1
 ```
 
 ## Добавить бота в группу
