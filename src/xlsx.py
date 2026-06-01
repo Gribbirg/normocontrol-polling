@@ -55,6 +55,37 @@ def _greenish(rgb8: str) -> bool:
     return g > r + 10 and g > b + 10 and g > 80
 
 
+# Цветные эмодзи-квадраты по тону (hue, градусы 0..360). Рядом с hex показываем
+# ближайший квадрат, чтобы оттенок читался с первого взгляда. Серые/чёрные/белые
+# берём по светлоте (низкая насыщенность), цветные — по тону.
+_HUE_EMOJI = [
+    (15, "🟥"), (45, "🟧"), (70, "🟨"), (160, "🟩"),
+    (255, "🟦"), (310, "🟪"), (360, "🟥"),
+]
+
+
+def _emoji_for_rgb(rgb6: str) -> str:
+    """Цветной квадрат, подобранный по тону/светлоте hex-цвета."""
+    import colorsys
+    try:
+        r = int(rgb6[0:2], 16) / 255
+        g = int(rgb6[2:4], 16) / 255
+        b = int(rgb6[4:6], 16) / 255
+    except ValueError:
+        return "⬜"
+    h, light, s = colorsys.rgb_to_hls(r, g, b)
+    if s < 0.18:  # почти серый — различаем по светлоте
+        return "⬛" if light < 0.25 else "⬜" if light > 0.85 else "⬜"
+    deg = h * 360
+    # коричневый — тёмно-оранжевый тон при невысокой светлоте
+    if 20 <= deg <= 50 and light < 0.45:
+        return "🟫"
+    for upper, emoji in _HUE_EMOJI:
+        if deg <= upper:
+            return emoji
+    return "🟥"
+
+
 def color_label(fill) -> str:
     """Человекочитаемая стабильная метка заливки (для диффа и репорта)."""
     if not fill:
@@ -66,7 +97,8 @@ def color_label(fill) -> str:
             return ""
         if rgb in GREEN_RGBS or _greenish(rgb):
             return "🟢 зелёный"
-        return f"#{rgb[-6:]}"
+        hex6 = rgb[-6:]
+        return f"{_emoji_for_rgb(hex6)} #{hex6}"
     if kind == "theme":
         tint = fill[2]
         return f"theme{fill[1]}" + (f"/{tint}" if tint else "")

@@ -19,6 +19,7 @@
     /ping <@user|id>       — добавить пинг
     /unping <@user|id>     — убрать пинг
     /dump                  — прислать полный дамп таблицы сейчас
+    /link                  — ссылка на Google-таблицу нормоконтроля
     /test                  — тестовое сообщение
     /github                — ссылка на исходный код
     /stop                  — убрать чат из слушателей
@@ -138,6 +139,8 @@ class CommandHandler:
             return self.cmd_stats(chat_id)
         if cmd == "/dump":
             return self.cmd_dump(chat_id)
+        if cmd == "/link":
+            return self.cmd_link(chat_id)
         if cmd == "/github":
             return self.cmd_github(chat_id)
         if cmd == "/test":
@@ -176,10 +179,20 @@ class CommandHandler:
             "/stats — сводка: антиплагиат, нормоконтроль, допуск, примечания\n"
             "/status — статус поллинга\n"
             "/dump — прислать полный дамп таблицы сейчас\n"
+            "/link — ссылка на Google-таблицу\n"
             "/test — проверка связи\n"
             "/github — исходный код бота\n"
             "/stop — убрать этот чат из слушателей\n\n"
             "Изменения подписок применяются на лету.")
+
+    def cmd_link(self, chat_id):
+        cfg = load_config()
+        sheet_id = (cfg.get("sheet") or {}).get("id")
+        if not sheet_id:
+            return self.reply(chat_id, "⚠️ Ссылка на таблицу не настроена.")
+        self.reply(chat_id,
+            "📊 Таблица нормоконтроля:\n"
+            f"https://docs.google.com/spreadsheets/d/{esc(str(sheet_id))}/edit")
 
     def cmd_github(self, chat_id):
         self.reply(chat_id,
