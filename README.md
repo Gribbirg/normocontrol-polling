@@ -155,21 +155,6 @@ sudo systemctl enable --now f5-gospodina
 journalctl -u f5-gospodina -f   # логи
 ```
 
-### Авто-деплой через GitHub Actions
-
-`.github/workflows/deploy.yml`: на каждый push в `main` (и по кнопке в Actions)
-заходит на сервер по SSH, делает `git reset --hard origin/main` и
-`systemctl restart f5-gospodina`.
-
-- **Прогресс не теряется**: `config/config.json` и `config/state.json` в
-  `.gitignore` (untracked), поэтому `git reset --hard` их не трогает — подписки,
-  whitelist и снапшот таблицы остаются как есть.
-- **Секреты доступа** — в GitHub Secrets (Settings → Secrets and variables →
-  Actions): `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (приватный SSH-ключ),
-  `DEPLOY_KNOWN_HOSTS` (host key сервера для строгой проверки).
-- На сервере код лежит в `/opt/normocontrol-polling`, remote — публичный HTTPS
-  (креды для `git fetch` не нужны).
-
 ### cron (каждую минуту) — альтернатива без долгого процесса
 
 ```cron
